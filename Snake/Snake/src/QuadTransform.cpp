@@ -12,6 +12,7 @@ private:
     glm::vec4 color;
 
 public:
+
     QuadTransform(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale, glm::vec4 color)
     {
         this->position = position;

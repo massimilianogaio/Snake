@@ -6,6 +6,7 @@
 class QuadTransformLinkedList {
 private:
     QuadTransformNode* head;
+    QuadTransformNode* lastNode;
 public:
     QuadTransformLinkedList() : head(nullptr) {}
 
@@ -21,7 +22,9 @@ public:
                 current = current->next;
             }
             current->next = newNode;
+            
         }
+        lastNode = newNode;
     }
 
     void display()
@@ -45,5 +48,9 @@ public:
     QuadTransformNode* getHead()
     {
         return head;
+    }
+    QuadTransformNode* getLastNode()
+    {
+        return lastNode;
     }
 };
