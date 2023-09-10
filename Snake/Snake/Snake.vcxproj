@@ -147,9 +147,17 @@
   <ItemGroup>
     <ClCompile Include="src\Application.cpp" />
     <ClCompile Include="src\glad.c" />
+    <ClCompile Include="src\QuadTransform.cpp" />
+    <ClCompile Include="src\QuadTransformLinkedList.cpp" />
+    <ClCompile Include="src\QuadTransformNode.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="glfw3.dll" />
+    <None Include="shader\vertex.shader" />
+    <None Include="shader\fragment.shader" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="shader\Shader.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
