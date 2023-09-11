@@ -7,6 +7,7 @@
 class QuadTransform {
 private:
     glm::vec3 position;
+    glm::vec3 previousPosition;
     glm::vec3 rotation;
     glm::vec3 scale;
     glm::vec4 color;
@@ -16,14 +17,18 @@ public:
     QuadTransform(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale, glm::vec4 color)
     {
         this->position = position;
+        this->previousPosition = position;
         this->rotation = rotation;
         this->scale = scale;
         this->color = color;
+        
     }
 
     glm::vec3 getPosition() const { return position; }
-    void setPosition(const glm::vec3& newPos) { position = newPos; }
-    void addTranslation(const glm::vec3& translation) { position = position + translation; }
+    glm::vec3 getPreviousPosition() const { return previousPosition; }
+
+    void setPosition(const glm::vec3& newPos) { previousPosition = position; position = newPos; }
+    void addTranslation(const glm::vec3& translation) { previousPosition = position; position = position + translation; }
     glm::vec3 getRotation() const { return rotation; }
     void setRotation(const glm::vec3& newRot) { rotation = newRot; }
 

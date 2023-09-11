@@ -13,18 +13,12 @@ public:
     void add(const QuadTransform& transform)
     {
         QuadTransformNode* newNode = new QuadTransformNode(transform);
-        if (!head) {
-            head = newNode;
+        newNode->next = head;
+        head = newNode;
+
+        if (!lastNode) {
+            lastNode = newNode;
         }
-        else {
-            QuadTransformNode* current = head;
-            while (current->next) {
-                current = current->next;
-            }
-            current->next = newNode;
-            
-        }
-        lastNode = newNode;
     }
 
     void display()
@@ -36,15 +30,26 @@ public:
         }
     }
 
-    // Clean up the linked list
-    ~QuadTransformLinkedList()
+
+    void ResetSnakeLength()
     {
-        while (head) {
-            QuadTransformNode* temp = head;
-            head = head->next;
-            delete temp;
+        
+        QuadTransformNode* current = head;
+        while (current) {
+            QuadTransformNode* temp = current;
+            std::cout << "Position: " << current->data.getPosition().x << ", " << current->data.getPosition().y << ", " << current->data.getPosition().z << std::endl;
+
+            current = current->next;
+            if (temp != lastNode)
+            {
+                std::cout << "delete" << std::endl;
+                delete temp;
+            }
         }
+        head = lastNode;
+        head->next = nullptr;
     }
+
     QuadTransformNode* getHead()
     {
         return head;

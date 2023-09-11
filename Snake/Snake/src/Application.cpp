@@ -26,7 +26,8 @@ const char* fragmentShaderPath = "shader/fragment.shader";
 #pragma region Time Variables
 double framePassed = 0.0;
 double lastFrame = 0.0;
-const int frameRate = 200;
+int numPointGoalReached = 1;
+const int frameRate = 100 - (numPointGoalReached * 1.5f);
 #pragma endregion   
 enum Direction {
     None,
@@ -35,12 +36,15 @@ enum Direction {
     Left,
     Right
 };
+float deltaColor = 0.05f;
 float halfWitdhQuad = 1.0f;
 float halfWitdhWindow = 25.0f;
 std::map<Direction, Direction> incomatibleDirections;
 Direction snakeDirection = Up;
 int prevKeyPressed = -1;
+
 bool directionKeyPressed = false;
+bool hasHeadCollidedWithQuad = false;
 QuadTransform pointGloal = QuadTransform(glm::vec3(0, 0.0, 1.0), glm::vec3(0, 0.0, 1.0), glm::vec3(1.0f), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
 QuadTransform* snakeHead;
 
@@ -54,7 +58,7 @@ unsigned int quadIndices[] = {
     0, 1, 3,   // first triangle
     1, 2, 3    // second triangle
 };
-
+glm::vec3 startPosition = glm::vec3(0.0f, 0.0f, 0.0f);
 QuadTransformLinkedList quadsList;
 unsigned int VBO, VAO, EBO;
 
@@ -63,11 +67,14 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 int main();
 void DrawQuad(Shader& shader, glm::mat4& projectionMatrix, QuadTransform quadData);
 void processInput(GLFWwindow* window);
-void CreateSnakeQuad(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale, glm::vec4 color, bool isSnakeHead);
+void CreateSnakeQuad(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale, glm::vec4 color);
 void MoveSnakeTorwardDirection(Direction direction);
 int GetRandomNumber(int minRange, int maxRange);
 void SetPointGoalRandomPosition();
 bool IsPointGoalReached();
+bool IsHeadCollidingWithQuad();
+void AddQuadToSnakeBody();
+bool IsSnakeOutsideWindow();
 #pragma endregion
 
 int main()
@@ -79,10 +86,9 @@ int main()
     incomatibleDirections[Left] = Right;
     incomatibleDirections[Down] = Up;
     
-    CreateSnakeQuad(glm::vec3(0.0f, -2 * halfWitdhQuad, 0.0f), glm::vec3(0, 0.0, 1.0), glm::vec3(1.0f), glm::vec4(0.8f), false);
-    CreateSnakeQuad(glm::vec3(0.0f, -1 * halfWitdhQuad, 0.0f), glm::vec3(0, 0.0, 1.0), glm::vec3(1.0f), glm::vec4(0.9f), false);
-    CreateSnakeQuad(glm::vec3(0.0f,  0 * halfWitdhQuad, 0.0f), glm::vec3(0.0, 0.0, 1.0), glm::vec3(1.0f), glm::vec4(1.0f), true);
     
+    CreateSnakeQuad(startPosition, glm::vec3(0.0, 0.0, 1.0), glm::vec3(1.0f), glm::vec4(1.0f));
+
     SetPointGoalRandomPosition();
     
     glfwInit();
@@ -144,13 +150,26 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT);
 
         processInput(window);
+  
+        if (IsHeadCollidingWithQuad())
+        {
+            std::cout << "IsHeadCollidingWithQuad" << std::endl;
+            quadsList.ResetSnakeLength();
+            numPointGoalReached = 1;
+        }
+        if (IsSnakeOutsideWindow())
+        {
+            std::cout << "SnakeOutsideWindow" << std::endl;
+            quadsList.ResetSnakeLength();
+            quadsList.getHead()->data.setPosition(startPosition);
+            numPointGoalReached = 1;
+        }
 
-        
         QuadTransformNode* current = quadsList.getHead();
         while (current)
         {
-            DrawQuad(shader, projectionMatrix, pointGloal);
             DrawQuad(shader, projectionMatrix, current->data);
+            DrawQuad(shader, projectionMatrix, pointGloal);
             
             current = current->next;
         }
@@ -163,7 +182,9 @@ int main()
         if (IsPointGoalReached())
         {
             std::cout << "PointGoalReached" << std::endl;
+            numPointGoalReached++;
             SetPointGoalRandomPosition();
+            AddQuadToSnakeBody();
         }
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -242,14 +263,10 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     glViewport(0, 0, width, height);
 }
-void CreateSnakeQuad(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale, glm::vec4 color, bool isSnakeHead)
+void CreateSnakeQuad(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale, glm::vec4 color)
 {
     QuadTransform newQuad = QuadTransform(position, rotation, scale, color);
     quadsList.add(newQuad);
-    if (isSnakeHead)
-    {
-        snakeHead = &newQuad;
-    }
 }
 
 void MoveSnakeTorwardDirection(Direction direction)
@@ -298,11 +315,47 @@ int GetRandomNumber(int minRange, int maxRange)
 
 void SetPointGoalRandomPosition()
 {
-    glm::vec3 pointGoalPos = glm::vec3(GetRandomNumber(-halfWitdhWindow, halfWitdhWindow), GetRandomNumber(-halfWitdhWindow, halfWitdhWindow), 0.0f);
+    glm::vec3 pointGoalPos = glm::vec3(
+        GetRandomNumber(-halfWitdhWindow + 2, halfWitdhWindow -2), 
+        GetRandomNumber(-halfWitdhWindow + 2, halfWitdhWindow - 2), 0.0f);
     pointGloal.setPosition(pointGoalPos);
 }
-
+bool IsSnakeOutsideWindow()
+{
+    glm::vec3 currPos = (&quadsList.getLastNode()->data)->getPosition();
+    bool oustideX = currPos.x < -halfWitdhWindow || currPos.x > halfWitdhWindow;
+    bool oustideY = currPos.y < -halfWitdhWindow || currPos.y > halfWitdhWindow;
+    return oustideY || oustideX;
+}
 bool IsPointGoalReached()
 {
     return (&quadsList.getLastNode()->data)->getPosition() == pointGloal.getPosition();
+}
+bool IsHeadCollidingWithQuad()
+{
+    bool collision = false;
+    QuadTransformNode* current = quadsList.getHead();
+    while (current)
+    {
+        if (current != quadsList.getLastNode()
+            && (&quadsList.getLastNode()->data)->getPosition() == current->data.getPosition())
+        {
+            collision = true;
+        }
+        current = current->next;
+    }
+    
+    return collision;
+}
+void AddQuadToSnakeBody()
+{
+    glm::vec3 quadPos = quadsList.getHead()->data.getPreviousPosition();
+    glm::vec4 prevQuadCol = quadsList.getHead()->data.getColor();
+    glm::vec4 quadCol = prevQuadCol;
+    quadCol.x = prevQuadCol.x > deltaColor ? prevQuadCol.x - deltaColor : 0.0f;
+    quadCol.y = prevQuadCol.y > deltaColor ? prevQuadCol.y - deltaColor : 0.0f;
+    quadCol.z = prevQuadCol.z > deltaColor ? prevQuadCol.z - deltaColor : 0.0f;
+
+    CreateSnakeQuad(quadPos, glm::vec3(0.0, 0.0, 1.0), glm::vec3(1.0f), quadCol);
+
 }
