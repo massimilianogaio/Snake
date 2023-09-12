@@ -4,8 +4,7 @@ using namespace glm;
 
 SnakeBody::SnakeBody()
 {
-    //quadsList = QuadTransformLinkedList();
-    std::cout << "AAAB" << std::endl;
+    CreateSnakeQuad(startPosition, glm::vec3(0.0, 0.0, 1.0), glm::vec3(1.0f), glm::vec4(1.0f));
 }
 
 bool SnakeBody::IsHeadCollidingWithQuad()
@@ -34,8 +33,11 @@ QuadTransformLinkedList SnakeBody::GetQuadsList()
 {
     return quadsList;
 }
+QuadTransformLinkedList* SnakeBody::GetQuadsListRef()
+{
+    return &quadsList;
 
-QuadTransform SnakeBody::getSnakeHead()
+}QuadTransform SnakeBody::getSnakeHead()
 {
     return quadsList.getLastNode()->data;
 }

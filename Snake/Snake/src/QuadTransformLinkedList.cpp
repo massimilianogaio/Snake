@@ -30,7 +30,6 @@ void QuadTransformLinkedList::resetLength()
         QuadTransformNode* temp = current;
         current = current->next;
         if (temp != lastNode) {
-            std::cout << "delete" << std::endl;
             delete temp;
         }
     }

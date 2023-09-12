@@ -148,10 +148,13 @@
     <ClCompile Include="src\Application.cpp" />
     <ClCompile Include="src\glad.c" />
     <ClCompile Include="src\GlobalResouces.cpp" />
+    <ClCompile Include="src\GoalPoint.cpp" />
+    <ClCompile Include="src\InputPlayer.cpp" />
     <ClCompile Include="src\QuadTransform.cpp" />
     <ClCompile Include="src\QuadTransformLinkedList.cpp" />
     <ClCompile Include="src\QuadTransformNode.cpp" />
     <ClCompile Include="src\SnakeBody.cpp" />
+    <ClCompile Include="src\SnakeMovment.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="glfw3.dll" />
@@ -162,10 +165,13 @@
     <ClInclude Include="shader\Shader.h" />
     <ClInclude Include="src\Application.h" />
     <ClInclude Include="src\GlobalResouces.h" />
+    <ClInclude Include="src\GoalPoint.h" />
+    <ClInclude Include="src\InputPlayer.h" />
     <ClInclude Include="src\QuadTransform.h" />
     <ClInclude Include="src\QuadTransformLinkedList.h" />
     <ClInclude Include="src\QuadTransformNode.h" />
     <ClInclude Include="src\SnakeBody.h" />
+    <ClInclude Include="src\SnakeMovement.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

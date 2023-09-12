@@ -1,93 +1,54 @@
+#include "Application.h"
+#pragma region OpenGL libs
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#pragma endregion
 
-#include <string>
+#pragma region C++ libs
 #include <iostream>
-#include <sstream>
-#include <fstream>
-#include "../shader/Shader.h"
+#pragma endregion
+
+#pragma region Game dependency
 #include "GlobalResouces.h"
 #include "SnakeBody.h"
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <map>
-#include <random>
-
-#pragma region  Window Variables
-
-const char* title = "Snake";
+#include "GoalPoint.h"
+#include "SnakeMovement.h"
+#include "InputPlayer.h"
 #pragma endregion
+
 #pragma region Shaders Variables
 const char* vertexShaderPath = "shader/vertex.shader";
 const char* fragmentShaderPath = "shader/fragment.shader";
 #pragma endregion
-#pragma region Time Variables
-double framePassed = 0.0;
-double lastFrame = 0.0;
-int numPointGoalReached = 1;
-const int frameRate = 100 - (numPointGoalReached * 1.5f);
-#pragma endregion   
-enum Direction {
-    None,
-    Up,
-    Down,
-    Left,
-    Right
-};
 
-float halfWitdhQuad = 1.0f;
+int numPointsGoalReached = 1;   
 
-std::map<Direction, Direction> incomatibleDirections;
-Direction snakeDirection = Up;
-int prevKeyPressed = -1;
-
-bool directionKeyPressed = false;
-bool hasHeadCollidedWithQuad = false;
-QuadTransform pointGloal = QuadTransform(glm::vec3(0, 0.0, 1.0), glm::vec3(0, 0.0, 1.0), glm::vec3(1.0f), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-QuadTransform* snakeHead;
-
+#pragma region  Draw Variables
 float quadVertices[] = {
-     0.5f,  0.5f, 0.0f,  // top right
-     0.5f, -0.5f, 0.0f,  // bottom right
-    -0.5f, -0.5f, 0.0f,  // bottom left
-    -0.5f,  0.5f, 0.0f   // top left 
+     0.5f,  0.5f, 0.0f,
+     0.5f, -0.5f, 0.0f,
+    -0.5f, -0.5f, 0.0f,
+    -0.5f,  0.5f, 0.0f
 };
 unsigned int quadIndices[] = {
-    0, 1, 3,   // first triangle
-    1, 2, 3    // second triangle
+    0, 1, 3,
+    1, 2, 3
 };
-
-QuadTransformLinkedList quadsList;
 unsigned int VBO, VAO, EBO;
-
-#pragma region  Function Declaration
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-int main();
-void DrawQuad(Shader& shader, glm::mat4& projectionMatrix, QuadTransform quadData);
-void processInput(GLFWwindow* window);
-void CreateSnakeQuad(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale, glm::vec4 color);
-void MoveSnakeTorwardDirection(Direction direction);
-int GetRandomNumber(int minRange, int maxRange);
-void SetPointGoalRandomPosition();
-bool IsPointGoalReached();
 #pragma endregion
 
+#pragma region Game Components
 SnakeBody snakeBody;
-int main()
-{
-    //snakeBody = SnakeBody();
-    glm::mat4 projectionMatrix = glm::ortho(-halfWitdhWindow, halfWitdhWindow, -halfWitdhWindow, halfWitdhWindow, -1.0f, 1.0f);
+SnakeMovement snakeMovement = SnakeMovement(snakeBody.GetQuadsListRef());
+GoalPoint goalPoint;
+InputPlayer inputPlayer;
+#pragma endregion 
 
-    incomatibleDirections[Up] = Down;
-    incomatibleDirections[Right] = Left;
-    incomatibleDirections[Left] = Right;
-    incomatibleDirections[Down] = Up;
-    
-    
-    snakeBody.CreateSnakeQuad(startPosition, glm::vec3(0.0, 0.0, 1.0), glm::vec3(1.0f), glm::vec4(1.0f));
+int main()
+{ 
+    glm::mat4 projectionMatrix = glm::ortho(-halfWitdhWindow, halfWitdhWindow, -halfWitdhWindow, halfWitdhWindow, -1.0f, 1.0f);   
    
-    SetPointGoalRandomPosition();
+    goalPoint.SetPointGoalAtRandomPosition();
     
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -98,7 +59,7 @@ int main()
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    GLFWwindow* window = glfwCreateWindow(scrWidth, scrHeight, title, NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(scrWidth, scrHeight, "Snake", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -118,7 +79,6 @@ int main()
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
-    // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -130,66 +90,60 @@ int main()
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
-    // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    // remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-    // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-    // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
     glBindVertexArray(0);
 
     while (!glfwWindowShouldClose(window))
     {
-        framePassed ++;
-
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        processInput(window);
-  
-        if (snakeBody.IsHeadCollidingWithQuad())
-        {
-            std::cout << "IsHeadCollidingWithQuad" << std::endl;
-            //quadsList.ResetSnakeLength();
-            numPointGoalReached = 1;
-        }
-        if (snakeBody.IsSnakeOutsideWindow())
-        {
-            std::cout << "SnakeOutsideWindow" << std::endl;
-            snakeBody.resetSnake();
-
-            numPointGoalReached = 1;
-        }
-
-        QuadTransformNode* current = snakeBody.GetQuadsList().getHead();
-        while (current)
-        {
-            DrawQuad(shader, projectionMatrix, current->data);
-            DrawQuad(shader, projectionMatrix, pointGloal);
-            
-            current = current->next;
-        }
-        if (snakeDirection != None && framePassed >= frameRate)
-        {
-            framePassed = 0;
-            MoveSnakeTorwardDirection(snakeDirection);
-        }
-        
-        if (IsPointGoalReached())
-        {
-            std::cout << "PointGoalReached" << std::endl;
-            numPointGoalReached++;
-            SetPointGoalRandomPosition();
-            snakeBody.AddQuadToSnakeBody();
-        }
-        glfwSwapBuffers(window);
-        glfwPollEvents();
+        ProcessPlayerInput(window);
+        ProcessGameReset();
+        ProcessDrawGame(shader, projectionMatrix, window);
+        ProcessGameGoalReached();
     }
 
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
+}
+void ProcessGameGoalReached()
+{
+    if (goalPoint.IsPointGoalReached(snakeBody.getSnakeHead().getPosition()))
+    {
+        std::cout << "PointsGoalReached : " << numPointsGoalReached << std::endl;
+        numPointsGoalReached++;
+        snakeMovement.OnPointGoalReached(numPointsGoalReached);
+        goalPoint.SetPointGoalAtRandomPosition();
+        snakeBody.AddQuadToSnakeBody();
+    }
+}
+void ProcessPlayerInput(GLFWwindow* window)
+{
+    Direction newDir = inputPlayer.processInput(window);
+    snakeMovement.SetSnakeDirection(newDir != None ? newDir : snakeMovement.GetSnakeDirection());
+    snakeMovement.Move();
+}
+void ProcessDrawGame(Shader& shader, glm::mat4& projectionMatrix, GLFWwindow* window)
+{
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    QuadTransformNode* current = snakeBody.GetQuadsList().getHead();
+    while (current)
+    {
+        DrawQuad(shader, projectionMatrix, current->data);
+        DrawQuad(shader, projectionMatrix, goalPoint.GetGoalPoint());
+
+        current = current->next;
+    }
+    glfwSwapBuffers(window);
+    glfwPollEvents();
+}
+void ProcessGameReset()
+{
+    if (snakeBody.IsHeadCollidingWithQuad() || snakeBody.IsSnakeOutsideWindow())
+    {
+        snakeBody.resetSnake();
+        numPointsGoalReached = 1;
+    }
 }
 void DrawQuad(Shader& shader, glm::mat4& projectionMatrix, QuadTransform quadData)
 {
@@ -211,149 +165,8 @@ void DrawQuad(Shader& shader, glm::mat4& projectionMatrix, QuadTransform quadDat
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
-void processInput(GLFWwindow* window)
-{
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-    {
-        glfwSetWindowShouldClose(window, true);
-    }
-    int upKeyState = glfwGetKey(window, GLFW_KEY_UP);
-    int rightKeyState = glfwGetKey(window, GLFW_KEY_RIGHT);
-    int leftKeyState = glfwGetKey(window, GLFW_KEY_LEFT);
-    int dowKeyState = glfwGetKey(window, GLFW_KEY_DOWN);
 
-    prevKeyPressed =
-        upKeyState == GLFW_PRESS ? GLFW_KEY_UP :
-        rightKeyState == GLFW_PRESS ? GLFW_KEY_RIGHT :
-        leftKeyState == GLFW_PRESS ? GLFW_KEY_LEFT :
-        dowKeyState == GLFW_PRESS ? GLFW_KEY_DOWN :
-        prevKeyPressed;
-    
-    if (prevKeyPressed != -1 && !directionKeyPressed)
-    {
-        directionKeyPressed = true;
-
-
-        Direction newSnakeDirection = prevKeyPressed == GLFW_KEY_UP ? Up :
-            prevKeyPressed == GLFW_KEY_RIGHT ? Right :
-            prevKeyPressed == GLFW_KEY_LEFT ? Left :
-            prevKeyPressed == GLFW_KEY_DOWN ? Down: snakeDirection;
-
-        if (newSnakeDirection == incomatibleDirections[snakeDirection])
-        {
-            std::cout << newSnakeDirection << "not allowed" << std::endl;
-        }
-        else
-        {
-            snakeDirection = newSnakeDirection;
-        }
-        
-        std::cout << snakeDirection << std::endl;
-    }
-
-    if(glfwGetKey(window, prevKeyPressed) == GLFW_RELEASE)
-    {
-        directionKeyPressed = false;
-        prevKeyPressed = -1;
-    }
-}
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     glViewport(0, 0, width, height);
 }
-void CreateSnakeQuad(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale, glm::vec4 color)
-{
-    QuadTransform newQuad = QuadTransform(position, rotation, scale, color);
-    quadsList.add(newQuad);
-}
-
-void MoveSnakeTorwardDirection(Direction direction)
-{
-    glm::vec3 translation = glm::vec3(0.0f, 0.0f, 0.0);
-    switch (direction)
-    {
-        case Up:
-            translation = glm::vec3(0.0f, halfWitdhQuad, 0.0);
-            break;
-        case Down:
-            translation = glm::vec3(0.0f, halfWitdhQuad * -1, 0.0);
-            break;
-        case Left:
-            translation = glm::vec3(halfWitdhQuad * -1, 0.0f, 0.0);
-            break;
-        case Right:
-            translation = glm::vec3(halfWitdhQuad, 0.0f, 0.0);
-            break;
-        default:
-            break;
-    }
-
-    QuadTransformNode* current = snakeBody.GetQuadsList().getHead();
-
-    while (current->next != nullptr) {
-        current->data.setPosition(current->next->data.getPosition());      
-        current = current->next;
-    }
-
-    current->data.addTranslation(translation);
-
-}
-
-
-int GetRandomNumber(int minRange, int maxRange)
-{
-    std::random_device rd; // obtain a random number from hardware
-    std::mt19937 gen(rd()); // seed the generator
-    std::uniform_int_distribution<> distr(minRange, maxRange); // define the range
-    int num = distr(gen);
-
-    std::cout << "GetRandomNumber generated " << num << std::endl;
-    return num;
-}
-
-void SetPointGoalRandomPosition()
-{
-    glm::vec3 pointGoalPos = glm::vec3(
-        GetRandomNumber(-halfWitdhWindow + 2, halfWitdhWindow -2), 
-        GetRandomNumber(-halfWitdhWindow + 2, halfWitdhWindow - 2), 0.0f);
-    pointGloal.setPosition(pointGoalPos);
-}
-//bool IsSnakeOutsideWindow()
-//{
-//    glm::vec3 currPos = (&quadsList.getLastNode()->data)->getPosition();
-//    bool oustideX = currPos.x < -halfWitdhWindow || currPos.x > halfWitdhWindow;
-//    bool oustideY = currPos.y < -halfWitdhWindow || currPos.y > halfWitdhWindow;
-//    return oustideY || oustideX;
-//}
-bool IsPointGoalReached()
-{
-    return snakeBody.getSnakeHead().getPosition() == pointGloal.getPosition();
-}
-//bool IsHeadCollidingWithQuad()
-//{
-//    bool collision = false;
-//    QuadTransformNode* current = quadsList.getHead();
-//    while (current)
-//    {
-//        if (current != quadsList.getLastNode()
-//            && (&quadsList.getLastNode()->data)->getPosition() == current->data.getPosition())
-//        {
-//            collision = true;
-//        }
-//        current = current->next;
-//    }
-//    
-//    return collision;
-//}
-//void AddQuadToSnakeBody()
-//{
-//    glm::vec3 quadPos = quadsList.getHead()->data.getPreviousPosition();
-//    glm::vec4 prevQuadCol = quadsList.getHead()->data.getColor();
-//    glm::vec4 quadCol = prevQuadCol;
-//    quadCol.x = prevQuadCol.x > deltaColor ? prevQuadCol.x - deltaColor : 0.0f;
-//    quadCol.y = prevQuadCol.y > deltaColor ? prevQuadCol.y - deltaColor : 0.0f;
-//    quadCol.z = prevQuadCol.z > deltaColor ? prevQuadCol.z - deltaColor : 0.0f;
-//
-//    CreateSnakeQuad(quadPos, glm::vec3(0.0, 0.0, 1.0), glm::vec3(1.0f), quadCol);
-//
-//}
