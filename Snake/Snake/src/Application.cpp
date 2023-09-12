@@ -142,7 +142,8 @@ void ProcessGameReset()
     if (snakeBody.IsHeadCollidingWithQuad() || snakeBody.IsSnakeOutsideWindow())
     {
         snakeBody.resetSnake();
-        numPointsGoalReached = 1;
+        snakeMovement.ResetMovement();
+        numPointsGoalReached = 0;
     }
 }
 void DrawQuad(Shader& shader, glm::mat4& projectionMatrix, QuadTransform quadData)

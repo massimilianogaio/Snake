@@ -12,7 +12,9 @@ public:
     void MoveSnakeTorwardDirection();
     void SetSnakeDirection(Direction direction);
     void OnPointGoalReached(float numPointGoalReached);
+    void ResetMovement();
     Direction GetSnakeDirection();
+
 private:
     QuadTransformLinkedList* snakeBody;
     int deltaFrameMovement = 100;

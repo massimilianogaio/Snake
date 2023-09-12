@@ -60,7 +60,14 @@ void SnakeMovement::SetSnakeDirection(Direction direction)
 }
 void SnakeMovement::OnPointGoalReached(float numPointGoalReached)
 {
-    deltaFrameMovement -= (numPointGoalReached * 1.5f);
+    float newdeltaFrameMovement = deltaFrameMovement - (numPointGoalReached * 0.15f);
+    deltaFrameMovement = newdeltaFrameMovement >= 20 ? newdeltaFrameMovement : 30;
+    std::cout << "Point Reached: " << numPointGoalReached <<"\n new speed:" << (100 - deltaFrameMovement) << std::endl;
+}
+
+void SnakeMovement::ResetMovement()
+{
+    deltaFrameMovement = 100;
 }
 
 Direction SnakeMovement::GetSnakeDirection()
