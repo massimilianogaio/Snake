@@ -1,9 +1,3 @@
-#include "QuadTransform.cpp"
+#include "QuadTransformNode.h"
 
-class QuadTransformNode {
-public:
-    QuadTransform data;
-    QuadTransformNode* next;
-
-    QuadTransformNode(const QuadTransform& transform) : data(transform), next(nullptr) {}
-};
+QuadTransformNode::QuadTransformNode(const QuadTransform& transform) : data(transform), next(nullptr) {}

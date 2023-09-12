@@ -6,17 +6,16 @@
 #include <sstream>
 #include <fstream>
 #include "../shader/Shader.h"
-
+#include "GlobalResouces.h"
+#include "SnakeBody.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include "QuadTransformLinkedList.cpp"
 #include <map>
 #include <random>
 
 #pragma region  Window Variables
-unsigned int scrWidth = 900;
-unsigned int scrHeight = 900;
+
 const char* title = "Snake";
 #pragma endregion
 #pragma region Shaders Variables
@@ -36,9 +35,9 @@ enum Direction {
     Left,
     Right
 };
-float deltaColor = 0.05f;
+
 float halfWitdhQuad = 1.0f;
-float halfWitdhWindow = 25.0f;
+
 std::map<Direction, Direction> incomatibleDirections;
 Direction snakeDirection = Up;
 int prevKeyPressed = -1;
@@ -58,7 +57,7 @@ unsigned int quadIndices[] = {
     0, 1, 3,   // first triangle
     1, 2, 3    // second triangle
 };
-glm::vec3 startPosition = glm::vec3(0.0f, 0.0f, 0.0f);
+
 QuadTransformLinkedList quadsList;
 unsigned int VBO, VAO, EBO;
 
@@ -72,13 +71,12 @@ void MoveSnakeTorwardDirection(Direction direction);
 int GetRandomNumber(int minRange, int maxRange);
 void SetPointGoalRandomPosition();
 bool IsPointGoalReached();
-bool IsHeadCollidingWithQuad();
-void AddQuadToSnakeBody();
-bool IsSnakeOutsideWindow();
 #pragma endregion
 
+SnakeBody snakeBody;
 int main()
 {
+    //snakeBody = SnakeBody();
     glm::mat4 projectionMatrix = glm::ortho(-halfWitdhWindow, halfWitdhWindow, -halfWitdhWindow, halfWitdhWindow, -1.0f, 1.0f);
 
     incomatibleDirections[Up] = Down;
@@ -87,8 +85,8 @@ int main()
     incomatibleDirections[Down] = Up;
     
     
-    CreateSnakeQuad(startPosition, glm::vec3(0.0, 0.0, 1.0), glm::vec3(1.0f), glm::vec4(1.0f));
-
+    snakeBody.CreateSnakeQuad(startPosition, glm::vec3(0.0, 0.0, 1.0), glm::vec3(1.0f), glm::vec4(1.0f));
+   
     SetPointGoalRandomPosition();
     
     glfwInit();
@@ -151,21 +149,21 @@ int main()
 
         processInput(window);
   
-        if (IsHeadCollidingWithQuad())
+        if (snakeBody.IsHeadCollidingWithQuad())
         {
             std::cout << "IsHeadCollidingWithQuad" << std::endl;
-            quadsList.ResetSnakeLength();
+            //quadsList.ResetSnakeLength();
             numPointGoalReached = 1;
         }
-        if (IsSnakeOutsideWindow())
+        if (snakeBody.IsSnakeOutsideWindow())
         {
             std::cout << "SnakeOutsideWindow" << std::endl;
-            quadsList.ResetSnakeLength();
-            quadsList.getHead()->data.setPosition(startPosition);
+            snakeBody.resetSnake();
+
             numPointGoalReached = 1;
         }
 
-        QuadTransformNode* current = quadsList.getHead();
+        QuadTransformNode* current = snakeBody.GetQuadsList().getHead();
         while (current)
         {
             DrawQuad(shader, projectionMatrix, current->data);
@@ -184,7 +182,7 @@ int main()
             std::cout << "PointGoalReached" << std::endl;
             numPointGoalReached++;
             SetPointGoalRandomPosition();
-            AddQuadToSnakeBody();
+            snakeBody.AddQuadToSnakeBody();
         }
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -290,7 +288,7 @@ void MoveSnakeTorwardDirection(Direction direction)
             break;
     }
 
-    QuadTransformNode* current = quadsList.getHead();
+    QuadTransformNode* current = snakeBody.GetQuadsList().getHead();
 
     while (current->next != nullptr) {
         current->data.setPosition(current->next->data.getPosition());      
@@ -320,42 +318,42 @@ void SetPointGoalRandomPosition()
         GetRandomNumber(-halfWitdhWindow + 2, halfWitdhWindow - 2), 0.0f);
     pointGloal.setPosition(pointGoalPos);
 }
-bool IsSnakeOutsideWindow()
-{
-    glm::vec3 currPos = (&quadsList.getLastNode()->data)->getPosition();
-    bool oustideX = currPos.x < -halfWitdhWindow || currPos.x > halfWitdhWindow;
-    bool oustideY = currPos.y < -halfWitdhWindow || currPos.y > halfWitdhWindow;
-    return oustideY || oustideX;
-}
+//bool IsSnakeOutsideWindow()
+//{
+//    glm::vec3 currPos = (&quadsList.getLastNode()->data)->getPosition();
+//    bool oustideX = currPos.x < -halfWitdhWindow || currPos.x > halfWitdhWindow;
+//    bool oustideY = currPos.y < -halfWitdhWindow || currPos.y > halfWitdhWindow;
+//    return oustideY || oustideX;
+//}
 bool IsPointGoalReached()
 {
-    return (&quadsList.getLastNode()->data)->getPosition() == pointGloal.getPosition();
+    return snakeBody.getSnakeHead().getPosition() == pointGloal.getPosition();
 }
-bool IsHeadCollidingWithQuad()
-{
-    bool collision = false;
-    QuadTransformNode* current = quadsList.getHead();
-    while (current)
-    {
-        if (current != quadsList.getLastNode()
-            && (&quadsList.getLastNode()->data)->getPosition() == current->data.getPosition())
-        {
-            collision = true;
-        }
-        current = current->next;
-    }
-    
-    return collision;
-}
-void AddQuadToSnakeBody()
-{
-    glm::vec3 quadPos = quadsList.getHead()->data.getPreviousPosition();
-    glm::vec4 prevQuadCol = quadsList.getHead()->data.getColor();
-    glm::vec4 quadCol = prevQuadCol;
-    quadCol.x = prevQuadCol.x > deltaColor ? prevQuadCol.x - deltaColor : 0.0f;
-    quadCol.y = prevQuadCol.y > deltaColor ? prevQuadCol.y - deltaColor : 0.0f;
-    quadCol.z = prevQuadCol.z > deltaColor ? prevQuadCol.z - deltaColor : 0.0f;
-
-    CreateSnakeQuad(quadPos, glm::vec3(0.0, 0.0, 1.0), glm::vec3(1.0f), quadCol);
-
-}
+//bool IsHeadCollidingWithQuad()
+//{
+//    bool collision = false;
+//    QuadTransformNode* current = quadsList.getHead();
+//    while (current)
+//    {
+//        if (current != quadsList.getLastNode()
+//            && (&quadsList.getLastNode()->data)->getPosition() == current->data.getPosition())
+//        {
+//            collision = true;
+//        }
+//        current = current->next;
+//    }
+//    
+//    return collision;
+//}
+//void AddQuadToSnakeBody()
+//{
+//    glm::vec3 quadPos = quadsList.getHead()->data.getPreviousPosition();
+//    glm::vec4 prevQuadCol = quadsList.getHead()->data.getColor();
+//    glm::vec4 quadCol = prevQuadCol;
+//    quadCol.x = prevQuadCol.x > deltaColor ? prevQuadCol.x - deltaColor : 0.0f;
+//    quadCol.y = prevQuadCol.y > deltaColor ? prevQuadCol.y - deltaColor : 0.0f;
+//    quadCol.z = prevQuadCol.z > deltaColor ? prevQuadCol.z - deltaColor : 0.0f;
+//
+//    CreateSnakeQuad(quadPos, glm::vec3(0.0, 0.0, 1.0), glm::vec3(1.0f), quadCol);
+//
+//}

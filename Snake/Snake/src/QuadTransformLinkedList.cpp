@@ -1,61 +1,49 @@
-#include "QuadTransformNode.cpp"
-#include "QuadTransform.cpp"
+#include "QuadTransformLinkedList.h"
 #include <iostream>
-#pragma once
 
-class QuadTransformLinkedList {
-private:
-    QuadTransformNode* head;
-    QuadTransformNode* lastNode;
-public:
-    QuadTransformLinkedList() : head(nullptr) {}
+QuadTransformLinkedList::QuadTransformLinkedList() : head(nullptr), lastNode(nullptr) {}
 
-    void add(const QuadTransform& transform)
-    {
-        QuadTransformNode* newNode = new QuadTransformNode(transform);
-        newNode->next = head;
-        head = newNode;
+void QuadTransformLinkedList::add(const QuadTransform& transform)
+{
+    QuadTransformNode* newNode = new QuadTransformNode(transform);
+    newNode->next = head;
+    head = newNode;
 
-        if (!lastNode) {
-            lastNode = newNode;
+    if (!lastNode) {
+        lastNode = newNode;
+    }
+}
+
+void QuadTransformLinkedList::display()
+{
+    QuadTransformNode* current = head;
+    while (current) {
+        std::cout << "Position: " << current->data.getPosition().x << ", " << current->data.getPosition().y << ", " << current->data.getPosition().z << std::endl;
+        current = current->next;
+    }
+}
+
+void QuadTransformLinkedList::resetLength()
+{
+    QuadTransformNode* current = head;
+    while (current) {
+        QuadTransformNode* temp = current;
+        current = current->next;
+        if (temp != lastNode) {
+            std::cout << "delete" << std::endl;
+            delete temp;
         }
     }
+    head = lastNode;
+    head->next = nullptr;
+}
 
-    void display()
-    {
-        QuadTransformNode* current = head;
-        while (current) {
-            std::cout << "Position: " << current->data.getPosition().x << ", " << current->data.getPosition().y << ", " << current->data.getPosition().z << std::endl;
-            current = current->next;
-        }
-    }
+QuadTransformNode* QuadTransformLinkedList::getHead()
+{
+    return head;
+}
 
-
-    void ResetSnakeLength()
-    {
-        
-        QuadTransformNode* current = head;
-        while (current) {
-            QuadTransformNode* temp = current;
-            std::cout << "Position: " << current->data.getPosition().x << ", " << current->data.getPosition().y << ", " << current->data.getPosition().z << std::endl;
-
-            current = current->next;
-            if (temp != lastNode)
-            {
-                std::cout << "delete" << std::endl;
-                delete temp;
-            }
-        }
-        head = lastNode;
-        head->next = nullptr;
-    }
-
-    QuadTransformNode* getHead()
-    {
-        return head;
-    }
-    QuadTransformNode* getLastNode()
-    {
-        return lastNode;
-    }
-};
+QuadTransformNode* QuadTransformLinkedList::getLastNode()
+{
+    return lastNode;
+}

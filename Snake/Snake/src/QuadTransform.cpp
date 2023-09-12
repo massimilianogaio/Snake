@@ -1,49 +1,73 @@
-#include <glm/glm.hpp>
-#include <glm/glm.hpp>
+#include "QuadTransform.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#pragma once
 
-class QuadTransform {
-private:
-    glm::vec3 position;
-    glm::vec3 previousPosition;
-    glm::vec3 rotation;
-    glm::vec3 scale;
-    glm::vec4 color;
+QuadTransform::QuadTransform(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale, glm::vec4 color)
+{
+    this->position = position;
+    this->previousPosition = position;
+    this->rotation = rotation;
+    this->scale = scale;
+    this->color = color;
+}
 
-public:
+glm::vec3 QuadTransform::getPosition() const
+{
+    return position;
+}
 
-    QuadTransform(glm::vec3 position, glm::vec3 rotation, glm::vec3 scale, glm::vec4 color)
-    {
-        this->position = position;
-        this->previousPosition = position;
-        this->rotation = rotation;
-        this->scale = scale;
-        this->color = color;
-        
-    }
+glm::vec3 QuadTransform::getPreviousPosition() const
+{
+    return previousPosition;
+}
 
-    glm::vec3 getPosition() const { return position; }
-    glm::vec3 getPreviousPosition() const { return previousPosition; }
+void QuadTransform::setPosition(const glm::vec3& newPos)
+{
+    previousPosition = position;
+    position = newPos;
+}
 
-    void setPosition(const glm::vec3& newPos) { previousPosition = position; position = newPos; }
-    void addTranslation(const glm::vec3& translation) { previousPosition = position; position = position + translation; }
-    glm::vec3 getRotation() const { return rotation; }
-    void setRotation(const glm::vec3& newRot) { rotation = newRot; }
+void QuadTransform::addTranslation(const glm::vec3& translation)
+{
+    previousPosition = position;
+    position = position + translation;
+}
 
-    glm::vec3 getScale() const { return scale; }
-    void setScale(const glm::vec3& newScale) { scale = newScale; }
+glm::vec3 QuadTransform::getRotation() const
+{
+    return rotation;
+}
 
-    glm::vec4 getColor() const { return color; }
-    void setColor(const glm::vec4& newColor) { color = newColor; }
+void QuadTransform::setRotation(const glm::vec3& newRot)
+{
+    rotation = newRot;
+}
 
-    glm::mat4 getProjectionMatrix()
-    {
-        glm::mat4 trans = glm::mat4(1.0f);
-        trans = glm::translate(trans, getPosition());
-        trans = glm::rotate(trans, glm::radians(90.0f), getRotation());
-        trans = glm::scale(trans, getScale());
-        return trans;
-    }
-};
+glm::vec3 QuadTransform::getScale() const
+{
+    return scale;
+}
+
+void QuadTransform::setScale(const glm::vec3& newScale)
+{
+    scale = newScale;
+}
+
+glm::vec4 QuadTransform::getColor() const
+{
+    return color;
+}
+
+void QuadTransform::setColor(const glm::vec4& newColor)
+{
+    color = newColor;
+}
+
+glm::mat4 QuadTransform::getProjectionMatrix()
+{
+    glm::mat4 trans = glm::mat4(1.0f);
+    trans = glm::translate(trans, getPosition());
+    trans = glm::rotate(trans, glm::radians(90.0f), getRotation());
+    trans = glm::scale(trans, getScale());
+    return trans;
+}
